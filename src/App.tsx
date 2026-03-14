@@ -8,6 +8,7 @@ import {
   Artifact,
   ArtifactCategory,
 } from "./data/artifacts";
+import { Analytics } from "@vercel/analytics/react";
 import "./App.css";
 
 function getArtifactIdFromHash(): string | null {
@@ -72,10 +73,13 @@ function App() {
 
   if (viewingArtifact) {
     return (
-      <EmbedView
-        artifact={viewingArtifact}
-        onBack={navigateHome}
-      />
+      <>
+        <EmbedView
+          artifact={viewingArtifact}
+          onBack={navigateHome}
+        />
+        <Analytics />
+      </>
     );
   }
 
@@ -117,6 +121,7 @@ function App() {
           </a>
         </p>
       </footer>
+      <Analytics />
     </div>
   );
 }
