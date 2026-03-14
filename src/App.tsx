@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Header from "./components/Header";
 import FilterBar from "./components/FilterBar";
 import ArtifactCard from "./components/ArtifactCard";
@@ -11,6 +11,12 @@ import {
 } from "./data/artifacts";
 import "./App.css";
 
+function getArtifactIdFromHash(): string | null {
+  const hash = window.location.hash;
+  const match = hash.match(/^#\/artifact\/(.+)$/);
+  return match ? match[1] : null;
+}
+
 function App() {
   const [selectedCategory, setSelectedCategory] = useState<
     ArtifactCategory | "All"
@@ -18,7 +24,36 @@ function App() {
   const [selectedTool, setSelectedTool] = useState<ArtifactTool | "All">(
     "All"
   );
-  const [viewingArtifact, setViewingArtifact] = useState<Artifact | null>(null);
+  const [viewingArtifact, setViewingArtifact] = useState<Artifact | null>(
+    () => {
+      const id = getArtifactIdFromHash();
+      return id ? artifacts.find((a) => a.id === id) ?? null : null;
+    }
+  );
+
+  const navigateToArtifact = useCallback((artifact: Artifact) => {
+    window.location.hash = `#/artifact/${artifact.id}`;
+    setViewingArtifact(artifact);
+  }, []);
+
+  const navigateHome = useCallback(() => {
+    window.location.hash = "";
+    setViewingArtifact(null);
+  }, []);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const id = getArtifactIdFromHash();
+      if (id) {
+        const found = artifacts.find((a) => a.id === id) ?? null;
+        setViewingArtifact(found);
+      } else {
+        setViewingArtifact(null);
+      }
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   const filtered = useMemo(() => {
     return artifacts.filter((a) => {
@@ -44,7 +79,7 @@ function App() {
     return (
       <EmbedView
         artifact={viewingArtifact}
-        onBack={() => setViewingArtifact(null)}
+        onBack={navigateHome}
       />
     );
   }
@@ -70,7 +105,7 @@ function App() {
                 <ArtifactCard
                   key={artifact.id}
                   artifact={artifact}
-                  onClick={setViewingArtifact}
+                  onClick={navigateToArtifact}
                 />
               ))}
             </div>
