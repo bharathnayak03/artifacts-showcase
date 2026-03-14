@@ -28,29 +28,43 @@ function App() {
     }
   );
 
-  const navigateToArtifact = useCallback((artifact: Artifact) => {
-    window.location.hash = `#/artifact/${artifact.id}`;
-    setViewingArtifact(artifact);
+  const withTransition = useCallback((fn: () => void) => {
+    if (document.startViewTransition) {
+      document.startViewTransition(fn);
+    } else {
+      fn();
+    }
   }, []);
 
+  const navigateToArtifact = useCallback((artifact: Artifact) => {
+    withTransition(() => {
+      window.location.hash = `#/artifact/${artifact.id}`;
+      setViewingArtifact(artifact);
+    });
+  }, [withTransition]);
+
   const navigateHome = useCallback(() => {
-    window.location.hash = "";
-    setViewingArtifact(null);
-  }, []);
+    withTransition(() => {
+      window.location.hash = "";
+      setViewingArtifact(null);
+    });
+  }, [withTransition]);
 
   useEffect(() => {
     const onHashChange = () => {
       const id = getArtifactIdFromHash();
-      if (id) {
-        const found = artifacts.find((a) => a.id === id) ?? null;
-        setViewingArtifact(found);
-      } else {
-        setViewingArtifact(null);
-      }
+      withTransition(() => {
+        if (id) {
+          const found = artifacts.find((a) => a.id === id) ?? null;
+          setViewingArtifact(found);
+        } else {
+          setViewingArtifact(null);
+        }
+      });
     };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
+  }, [withTransition]);
 
   const filtered = useMemo(() => {
     return artifacts.filter((a) => {
