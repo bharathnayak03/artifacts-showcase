@@ -1,42 +1,333 @@
-#root {
-  max-width: 1280px;
+/* ===== Reset & Base ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface-hover: #334155;
+  --border: #334155;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --accent: #818cf8;
+  --accent-hover: #6366f1;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* ===== App Layout ===== */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 1.5rem;
+  flex: 1;
+}
+
+/* ===== Header ===== */
+.header {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 2.5rem 1.5rem;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+}
+
+.profile h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.subtitle {
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.meta {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 0.15rem;
+}
+
+.header-desc {
+  color: var(--text-muted);
+  max-width: 600px;
+  font-size: 0.95rem;
+}
+
+/* ===== Filter Bar ===== */
+.filter-bar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.filter-group label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.filter-select {
+  appearance: none;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M2 4l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 0.75rem center;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.5rem 2.25rem 0.5rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  min-width: 180px;
+}
+
+.filter-select:hover {
+  border-color: var(--accent);
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+.filter-select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* ===== Category Sections ===== */
+.category-section {
+  margin-bottom: 2.5rem;
+}
+
+.category-heading {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* ===== Card Grid ===== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+/* ===== Artifact Card ===== */
+.artifact-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.artifact-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.category-icon {
+  font-size: 1.5rem;
+}
+
+.tool-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.card-desc {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  flex: 1;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+}
+
+.card-tags {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.tag {
+  background: rgba(129, 140, 248, 0.12);
+  color: var(--accent);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.card-action {
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ===== Embed View ===== */
+.embed-view {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.embed-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.embed-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.back-btn {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.back-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.embed-container {
+  flex: 1;
+}
+
+.embed-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* ===== Empty State ===== */
+.empty {
   text-align: center;
+  color: var(--text-muted);
+  padding: 4rem 1rem;
+  font-size: 1rem;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* ===== Footer ===== */
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  border-top: 1px solid var(--border);
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
+  .profile {
+    flex-direction: column;
+    text-align: center;
   }
-  to {
-    transform: rotate(360deg);
+
+  .card-grid {
+    grid-template-columns: 1fr;
   }
-}
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+  .filter-chips {
+    justify-content: center;
   }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
 }
