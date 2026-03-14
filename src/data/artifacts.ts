@@ -36,7 +36,7 @@ export const artifacts: Artifact[] = [
     tags: ["claude", "artifact", "interactive"],
     createdAt: "2026-03-14",
     // Replace embedHtml with your actual Claude artifact script
-    embedHtml: `<iframe src="https://claude.site/public/artifacts/2089a777-d7f6-421c-a56a-60daf39499d1/embed" title="Claude Artifact" width="100%" height="600" frameborder="0" allow="clipboard-write" allowfullscreen></iframe>`,
+    embedHtml: `<iframe src="https://claude.site/public/artifacts/73f5fe5d-632d-41ca-909c-024554f0e9fc/embed" title="Claude Artifact" width="100%" height="600" frameborder="0" allow="clipboard-write" allowfullscreen></iframe>`,
   },
 //   {
 //     id: "data-viz-example",
