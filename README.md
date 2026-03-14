@@ -1,21 +1,50 @@
-# React + TypeScript + Vite
+# AI Artifacts Showcase
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A curated showcase of AI-generated artifacts — interactive demos, visualizations, tools, and creative experiments built with AI assistants like Claude, ChatGPT, Gemini, and more.
 
-While this project uses React, Vite supports many popular JS frameworks. [See all the supported frameworks](https://vitejs.dev/guide/#scaffolding-your-first-vite-project).
+## Features
 
-## Deploy Your Own
+- Browse artifacts by category (Game, Visualization, Tool, Creative, Education, Productivity)
+- Filter by AI tool used
+- View artifacts embedded directly in the page or via external links
+- Local HTML artifacts served from `public/artifacts/`
 
-Deploy your own Vite project with Vercel.
+## Artifacts
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/examples/tree/main/framework-boilerplates/vite-react&template=vite-react)
+### Swiggy Order Dashboard
+A personal analytics dashboard that visualizes your Swiggy order history. Upload your exported `swiggy_orders.json` to see:
+- Spending trends over time
+- Top restaurants and cuisines
+- Most ordered items and veg vs non-veg breakdown
+- Payment method distribution
+- Order size distribution and hourly patterns
+- Detailed savings breakdown
 
-_Live Example: https://vite-react-example.vercel.app_
+## Adding Artifacts
 
-### Deploying From Your Terminal
+Artifacts can be added in `src/data/artifacts.ts` with three display modes:
 
-You can deploy your new Vite project with a single command from your terminal using [Vercel CLI](https://vercel.com/download):
+- **External link** — set `externalUrl` to open in a new tab
+- **Embedded URL** — set `embedUrl` to load in an iframe (works for local files in `public/artifacts/`)
+- **Embedded HTML** — set `embedHtml` with raw HTML rendered via `srcdoc`
+
+## Getting Started
 
 ```shell
-$ vercel
+npm install
+npm run dev
 ```
+
+## Deploy
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/bharathnayak03/artifacts-showcase)
+
+```shell
+vercel
+```
+
+## Tech Stack
+
+- React + TypeScript
+- Vite
+- Chart.js (used in Swiggy dashboard artifact)

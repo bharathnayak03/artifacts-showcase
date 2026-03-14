@@ -138,12 +138,20 @@
     await new Promise(r => setTimeout(r, 500));
   }
 
-  console.log(`✅ Done! ${allOrders.length} orders fetched.`);
-  console.log(JSON.stringify(allOrders));
+  console.log(`✅ Done! ${allOrders.length} orders fetched. Downloading...`);
+  const blob = new Blob([JSON.stringify(allOrders, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'swiggy_orders.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  console.log('✅ swiggy_orders.json downloaded!');
   return allOrders;
 }
 
-const orders = await fetchAllSwiggyOrders();</div>
+await fetchAllSwiggyOrders();</div>
             <button class="copy-btn" id="copy-btn" onclick="copyScript()">Copy script</button>
           </div>
         </div>
