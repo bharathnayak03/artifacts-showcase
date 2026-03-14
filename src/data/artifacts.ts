@@ -26,17 +26,28 @@ export interface Artifact {
 }
 
 export const artifacts: Artifact[] = [
+  // {
+  //   id: "claude-artifact-demo",
+  //   title: "Claude Artifact Demo",
+  //   description:
+  //     "An interactive artifact built with Claude — demonstrating real-time AI-generated UI components.",
+  //   category: "Tool",
+  //   tool: "Claude",
+  //   tags: ["claude", "artifact", "interactive"],
+  //   createdAt: "2026-03-14",
+  //   // Replace embedHtml with your actual Claude artifact script
+  //   embedHtml: `<iframe src="https://claude.site/public/artifacts/73f5fe5d-632d-41ca-909c-024554f0e9fc/embed" title="Claude Artifact" width="100%" height="600" frameborder="0" allow="clipboard-write" allowfullscreen></iframe>`,
+  // },
   {
-    id: "claude-artifact-demo",
-    title: "Claude Artifact Demo",
+    id: "swiggy-order-dashboard",
+    title: "Swiggy Order Dashboard",
     description:
-      "An interactive artifact built with Claude — demonstrating real-time AI-generated UI components.",
-    category: "Tool",
+      "A personal analytics dashboard that visualizes your Swiggy order history with charts, spending breakdowns, and ordering patterns.",
+    category: "Visualization",
     tool: "Claude",
-    tags: ["claude", "artifact", "interactive"],
+    tags: ["dashboard", "analytics", "food", "charts"],
     createdAt: "2026-03-14",
-    // Replace embedHtml with your actual Claude artifact script
-    embedHtml: `<iframe src="https://claude.site/public/artifacts/73f5fe5d-632d-41ca-909c-024554f0e9fc/embed" title="Claude Artifact" width="100%" height="600" frameborder="0" allow="clipboard-write" allowfullscreen></iframe>`,
+    embedUrl: "/artifacts/swiggy_order_dashboard.html",
   },
 //   {
 //     id: "data-viz-example",
