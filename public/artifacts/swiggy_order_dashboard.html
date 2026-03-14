@@ -24,8 +24,8 @@
   .step-desc { font-size: 12px; color: #666; line-height: 1.5; }
   .step-desc a { color: #378ADD; text-decoration: none; }
   .step-desc a:hover { text-decoration: underline; }
-  .code-block { background: #f5f5f2; border: 0.5px solid #ddd; border-radius: 8px; padding: 12px 14px; margin-top: 10px; position: relative; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px; color: #1a1a1a; line-height: 1.6; white-space: pre; overflow-x: auto; }
-  .copy-btn { position: absolute; top: 8px; right: 8px; font-size: 11px; padding: 4px 10px; background: #1a1a1a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; }
+  .code-block { background: #f5f5f2; border: 0.5px solid #ddd; border-radius: 8px; padding: 12px 14px; padding-right: 80px; margin-top: 10px; position: relative; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px; color: #1a1a1a; line-height: 1.6; white-space: pre-wrap; word-break: break-word; overflow-x: auto; }
+  .copy-btn { position: absolute; top: 8px; right: 8px; font-size: 11px; padding: 4px 10px; background: #1a1a1a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; z-index: 1; }
   .copy-btn:hover { background: #333; }
   .copy-btn.copied { background: #1D9E75; }
   .divider { border: none; border-top: 0.5px solid #e8e8e4; margin: 1.5rem 0; }
@@ -79,6 +79,27 @@
   #reset-btn { font-size: 12px; color: #666; background: #fff; border: 0.5px solid #ccc; border-radius: 8px; padding: 5px 12px; cursor: pointer; float: right; margin-top: -2px; }
   #reset-btn:hover { background: #f5f5f2; }
   .veg-stat { display: flex; gap: 14px; margin-top: 10px; }
+
+  @media (max-width: 600px) {
+    .container { padding: 1rem 0.75rem; }
+    header h1 { font-size: 18px; }
+    .instructions { padding: 1rem 1rem; }
+    .instructions h2 { font-size: 14px; }
+    .step { gap: 10px; }
+    .step-body { min-width: 0; }
+    .code-block { font-size: 10px; padding: 10px 10px; padding-right: 10px; }
+    .copy-btn { position: static; display: block; margin-top: 10px; width: 100%; text-align: center; }
+    #upload-zone { padding: 2rem 1rem; }
+    .upload-title { font-size: 14px; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .metric-value { font-size: 18px; }
+    .tab { padding: 8px 12px; font-size: 12px; }
+    .order-row { flex-direction: column; gap: 6px; }
+    .order-right { text-align: left; }
+    .veg-stat { flex-direction: column; gap: 8px; }
+    .pb-label { font-size: 11px; }
+    .pb-label span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 65%; }
+  }
 </style>
 </head>
 <body>
@@ -195,6 +216,16 @@ await fetchAllSwiggyOrders();</div>
         <div class="chart-card">
           <div class="chart-card-title">Orders by day of week</div>
           <div class="chart-wrap" style="height:200px;"><canvas id="chart-dow"></canvas></div>
+        </div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-card-title">Orders per month</div>
+          <div class="chart-wrap" style="height:200px;"><canvas id="chart-orders-month"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Orders by hour of day</div>
+          <div class="chart-wrap" style="height:200px;"><canvas id="chart-orders-hour"></canvas></div>
         </div>
       </div>
       <div class="charts-row">
@@ -354,6 +385,23 @@ function buildDashboard(orders) {
     type: 'bar',
     data: { labels: days, datasets: [{ data: dow, backgroundColor: '#1D9E7588', borderColor: '#1D9E75', borderWidth: 1 }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 11 } } }, y: { ticks: { font: { size: 11 } } } } }
+  });
+
+  // Orders per month
+  makeChart('chart-orders-month', {
+    type: 'bar',
+    data: { labels: sortedMonths, datasets: [{ label: 'Orders', data: sortedMonths.map(k => byMonth[k].count), backgroundColor: '#D4537E88', borderColor: '#D4537E', borderWidth: 1 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 11 }, autoSkip: true, maxRotation: 45 } }, y: { ticks: { font: { size: 11 }, stepSize: 1 } } } }
+  });
+
+  // Orders by hour of day
+  const hourCount = new Array(24).fill(0);
+  orders.forEach(o => { const d = new Date((o.order_time || '').replace(' ', 'T')); hourCount[d.getHours()]++; });
+  const hLabels = Array.from({ length: 24 }, (_, i) => i + ':00');
+  makeChart('chart-orders-hour', {
+    type: 'bar',
+    data: { labels: hLabels, datasets: [{ data: hourCount, backgroundColor: '#BA751788', borderColor: '#BA7517', borderWidth: 1 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 10 }, autoSkip: true, maxRotation: 0 } }, y: { ticks: { font: { size: 11 }, stepSize: 1 } } } }
   });
 
   const payMap = {};

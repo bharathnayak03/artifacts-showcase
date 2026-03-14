@@ -7,7 +7,6 @@ import {
   artifacts,
   Artifact,
   ArtifactCategory,
-  ArtifactTool,
 } from "./data/artifacts";
 import "./App.css";
 
@@ -21,9 +20,6 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState<
     ArtifactCategory | "All"
   >("All");
-  const [selectedTool, setSelectedTool] = useState<ArtifactTool | "All">(
-    "All"
-  );
   const [viewingArtifact, setViewingArtifact] = useState<Artifact | null>(
     () => {
       const id = getArtifactIdFromHash();
@@ -59,10 +55,9 @@ function App() {
     return artifacts.filter((a) => {
       if (selectedCategory !== "All" && a.category !== selectedCategory)
         return false;
-      if (selectedTool !== "All" && a.tool !== selectedTool) return false;
       return true;
     });
-  }, [selectedCategory, selectedTool]);
+  }, [selectedCategory]);
 
   // Group filtered artifacts by category
   const grouped = useMemo(() => {
@@ -90,9 +85,7 @@ function App() {
       <main className="main">
         <FilterBar
           selectedCategory={selectedCategory}
-          selectedTool={selectedTool}
           onCategoryChange={setSelectedCategory}
-          onToolChange={setSelectedTool}
         />
         {filtered.length === 0 && (
           <p className="empty">No artifacts match the selected filters.</p>
