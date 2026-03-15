@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medicine Refill Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.5/babel.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', monospace;
+    --color-text-primary: #1a1a1a;
+    --color-text-secondary: #666;
+    --color-text-tertiary: #999;
+    --color-text-info: #378ADD;
+    --color-text-success: #3b6d11;
+    --color-text-danger: #a32d2d;
+    --color-text-warning: #8a6d0b;
+    --color-background-primary: #fff;
+    --color-background-secondary: #f5f5f2;
+    --color-background-info: #e8f0fe;
+    --color-background-success: #e2f4d4;
+    --color-background-danger: #fde8e8;
+    --color-background-warning: #fef3cd;
+    --color-border-primary: #1a1a1a;
+    --color-border-secondary: #ccc;
+    --color-border-tertiary: #e0e0e0;
+    --color-border-info: #378ADD;
+    --color-border-success: #3b6d11;
+    --color-border-danger: #e8a0a0;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+  }
+  body { font-family: var(--font-sans); background: var(--color-background-secondary); color: var(--color-text-primary); min-height: 100vh; }
+  input, button { font-family: inherit; }
+  input[type="text"], input[type="number"], input[type="date"], input:not([type]) {
+    padding: 8px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary);
+    font-size: 14px; background: var(--color-background-primary); color: var(--color-text-primary); outline: none;
+  }
+  input:focus { border-color: var(--color-border-info); }
+</style>
+<script>
+  window.storage = {
+    get: function(key) {
+      var val = localStorage.getItem(key);
+      return Promise.resolve(val ? { value: val } : null);
+    },
+    set: function(key, value) {
+      localStorage.setItem(key, value);
+      return Promise.resolve();
+    }
+  };
+</script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-type="module">
+const { useState, useEffect, useRef } = React;
+
+const PATIENTS = ["Father", "Mother"];
+
+const defaultMed = () => ({
+  name: "", dosage: "", notes: "", startDate: "", totalTablets: "", tabletsPerDay: "1"
+});
+
+const AI_PROMPT = `You are helping me track medicine refills for my family. Based on the prescription or medicine details I share, generate a JSON array of medicines in exactly this format:
+
+[
+  {
+    "name": "Medicine name and strength (e.g. Metformin 500mg)",
+    "dosage": "How much per dose (e.g. 1 tablet)",
+    "notes": "Any instructions like 'Take with food' or empty string",
+    "startDate": "YYYY-MM-DD (today's date or prescription date)",
+    "totalTablets": 30,
+    "tabletsPerDay": 2
+  }
+]
+
+Rules:
+- "totalTablets" and "tabletsPerDay" must be numbers, not strings
+- "startDate" must be in YYYY-MM-DD format
+- If frequency is "twice a day", set tabletsPerDay to 2
+- If frequency is "once a day", set tabletsPerDay to 1
+- If frequency is "three times a day", set tabletsPerDay to 3
+- Output ONLY the JSON array. No explanation, no markdown code fences, no extra text.`;
+
+function useStorage(key, init) {
+  const [val, setVal] = useState(init);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await window.storage.get(key);
+        if (r && r.value) setVal(JSON.parse(r.value));
+      } catch {}
+      setLoaded(true);
+    })();
+  }, [key]);
+  const save = async (v) => {
+    setVal(v);
+    try { await window.storage.set(key, JSON.stringify(v)); } catch {}
+  };
+  return [val, save, loaded];
+}
+
+function calcStock(med) {
+  if (!med.startDate || !med.totalTablets || !med.tabletsPerDay) return null;
+  const start = new Date(med.startDate); start.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const daysPassed = Math.max(0, Math.floor((today - start) / 86400000));
+  const remaining = Math.max(0, Number(med.totalTablets) - daysPassed * Number(med.tabletsPerDay));
+  const daysLeft = Number(med.tabletsPerDay) > 0 ? Math.floor(remaining / Number(med.tabletsPerDay)) : null;
+  const refillDate = daysLeft !== null ? new Date(today.getTime() + daysLeft * 86400000) : null;
+  return { remaining: Math.round(remaining), daysLeft, refillDate };
+}
+
+function RefillBadge({ med }) {
+  const s = calcStock(med);
+  if (!s) return null;
+  const urgent = s.daysLeft <= 5, warn = s.daysLeft <= 10;
+  const pct = med.totalTablets > 0 ? Math.round((s.remaining / Number(med.totalTablets)) * 100) : 0;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 4 }}>
+        <span>{s.remaining} of {med.totalTablets} tablets remaining</span>
+        <span style={{ color: urgent ? "var(--color-text-danger)" : warn ? "var(--color-text-warning)" : "var(--color-text-secondary)", fontWeight: 500 }}>{s.daysLeft}d left</span>
+      </div>
+      <div style={{ background: "#eee", borderRadius: 20, height: 6, overflow: "hidden" }}>
+        <div style={{ height: "100%", borderRadius: 20, width: pct + "%", background: urgent ? "#e24b4a" : warn ? "#d4a017" : "#1D9E75", transition: "width 0.4s ease" }} />
+      </div>
+      {s.refillDate && (
+        <div style={{ fontSize: 11, color: urgent ? "var(--color-text-danger)" : "var(--color-text-secondary)", marginTop: 4 }}>
+          Refill by {s.refillDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [meds, setMeds, medsLoaded] = useStorage("med_refill_v1", { Father: [], Mother: [] });
+  const [patient, setPatient] = useState("Father");
+  const [tab, setTab] = useState("medicines");
+  const [form, setForm] = useState(defaultMed());
+  const [editIdx, setEditIdx] = useState(null);
+  const [toast, setToast] = useState({ msg: "", type: "success" });
+  const [importModal, setImportModal] = useState(false);
+  const [promptModal, setPromptModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [importPreview, setImportPreview] = useState(null);
+  const fileRef = useRef();
+
+  const showToast = (msg, type = "success") => { setToast({ msg, type }); setTimeout(() => setToast({ msg: "", type: "success" }), 2500); };
+
+  const saveMed = async () => {
+    if (!form.name.trim()) return;
+    const list = [...(meds[patient] || [])];
+    if (editIdx !== null) list[editIdx] = form; else list.push(form);
+    await setMeds({ ...meds, [patient]: list });
+    setForm(defaultMed()); setEditIdx(null); setTab("medicines");
+    showToast(editIdx !== null ? "Updated!" : "Medicine added!");
+  };
+  const deleteMed = async (idx) => { const list = [...(meds[patient] || [])]; list.splice(idx, 1); await setMeds({ ...meds, [patient]: list }); showToast("Removed."); };
+  const startEdit = (idx) => { setForm({ ...meds[patient][idx] }); setEditIdx(idx); setTab("add"); };
+  const patientMeds = meds[patient] || [];
+
+  const getAlerts = () => {
+    const a = [];
+    for (const p of PATIENTS) for (const m of (meds[p] || [])) { const s = calcStock(m); if (s && s.daysLeft <= 5) a.push({ patient: p, name: m.name, daysLeft: s.daysLeft }); }
+    return a;
+  };
+
+  const copyPrompt = () => { navigator.clipboard.writeText(AI_PROMPT).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); };
+
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImportError("");
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        const arr = Array.isArray(parsed) ? parsed : null;
+        if (!arr) { setImportError("JSON must be an array of medicines."); return; }
+        const valid = arr.every(m => m.name);
+        if (!valid) { setImportError("Some entries are missing the 'name' field."); return; }
+        setImportPreview(arr);
+        setImportError("");
+      } catch { setImportError("Invalid JSON file. Please check the format."); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const confirmImport = async (mode) => {
+    if (!importPreview) return;
+    const existing = meds[patient] || [];
+    const next = mode === "replace" ? importPreview : [...existing, ...importPreview];
+    await setMeds({ ...meds, [patient]: next });
+    setImportPreview(null); setImportModal(false);
+    showToast(`Imported ${importPreview.length} medicine${importPreview.length > 1 ? "s" : ""} for ${patient}!`);
+  };
+
+  const alerts = getAlerts();
+  const urgentCount = patientMeds.filter(m => { const s = calcStock(m); return s && s.daysLeft <= 5; }).length;
+
+  if (!medsLoaded) return <div style={{ padding: "2rem", color: "var(--color-text-secondary)", fontSize: 14 }}>Loading...</div>;
+
+  const modalBase = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 100 };
+  const sheet = { background: "var(--color-background-primary)", borderRadius: "16px 16px 0 0", padding: "1.25rem 1rem 2rem", width: "100%", maxWidth: 480, boxSizing: "border-box", maxHeight: "90vh", overflowY: "auto" };
+
+  return (
+    <div style={{ fontFamily: "var(--font-sans)", maxWidth: 480, margin: "0 auto", padding: "1rem 0.75rem" }}>
+      {toast.msg && (
+        <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", background: toast.type === "error" ? "var(--color-background-danger)" : "var(--color-background-success)", color: toast.type === "error" ? "var(--color-text-danger)" : "var(--color-text-success)", border: `0.5px solid ${toast.type === "error" ? "var(--color-border-danger)" : "var(--color-border-success)"}`, borderRadius: "var(--border-radius-md)", padding: "8px 20px", fontSize: 13, zIndex: 200, whiteSpace: "nowrap" }}>{toast.msg}</div>
+      )}
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>Medicine Refill Tracker</h2>
+        <div style={{ display: "flex", gap: 6 }}>
+          {PATIENTS.map(p => (
+            <button key={p} onClick={() => setPatient(p)} style={{ padding: "5px 14px", borderRadius: "var(--border-radius-md)", fontSize: 13, border: patient === p ? "2px solid var(--color-border-info)" : "0.5px solid var(--color-border-tertiary)", background: patient === p ? "var(--color-background-info)" : "var(--color-background-primary)", color: patient === p ? "var(--color-text-info)" : "var(--color-text-primary)", cursor: "pointer" }}>
+              {p}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {alerts.length > 0 && (
+        <div style={{ background: "var(--color-background-danger)", border: "0.5px solid var(--color-border-danger)", borderRadius: "var(--border-radius-md)", padding: "8px 12px", marginBottom: "0.75rem", fontSize: 13, color: "var(--color-text-danger)" }}>
+          {"\u26A0\uFE0F"} Refill soon: {alerts.map(a => `${a.patient}'s ${a.name} (${a.daysLeft}d)`).join(" \u00B7 ")}
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 4, borderBottom: "0.5px solid var(--color-border-tertiary)", marginBottom: "1rem" }}>
+        {[["medicines","Medicines"],["add", editIdx !== null ? "Edit" : "Add"]].map(([t, label]) => (
+          <button key={t} onClick={() => { setTab(t); if (t !== "add" && editIdx !== null) { setEditIdx(null); setForm(defaultMed()); } }} style={{ padding: "7px 14px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: tab === t ? "2px solid var(--color-text-primary)" : "2px solid transparent", color: tab === t ? "var(--color-text-primary)" : "var(--color-text-secondary)", fontWeight: tab === t ? 500 : 400 }}>{label}</button>
+        ))}
+        <div style={{ flex: 1 }} />
+        <button onClick={() => { setImportModal(true); setImportPreview(null); setImportError(""); }} style={{ padding: "7px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13, color: "var(--color-text-info)", fontWeight: 500 }}>{"\u2B06"} Import</button>
+      </div>
+
+      {/* MEDICINES LIST */}
+      {tab === "medicines" && (
+        <div>
+          {patientMeds.length === 0 ? <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--color-text-secondary)", fontSize: 14 }}>No medicines yet.<br /><button onClick={() => setTab("add")} style={{ marginTop: 10, padding: "6px 16px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "none", cursor: "pointer", fontSize: 13 }}>+ Add first medicine</button></div>
+          : patientMeds.map((m, i) => {
+            const s = calcStock(m);
+            const urgent = s && s.daysLeft <= 5;
+            return (
+            <div key={i} style={{ border: urgent ? "1px solid var(--color-border-danger)" : "0.5px solid var(--color-border-tertiary)", borderRadius: "var(--border-radius-lg)", padding: "12px 14px", marginBottom: 8, background: "var(--color-background-primary)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: 15 }}>{m.name}</div>
+                  <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 2 }}>
+                    {m.dosage && <span>{m.dosage} &middot; </span>}
+                    {m.tabletsPerDay && <span>{m.tabletsPerDay}/day</span>}
+                    {m.startDate && <span> &middot; Started {new Date(m.startDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => startEdit(i)} style={{ fontSize: 12, padding: "4px 10px", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", background: "none", cursor: "pointer", color: "var(--color-text-secondary)" }}>Edit</button>
+                  <button onClick={() => deleteMed(i)} style={{ fontSize: 12, padding: "4px 10px", border: "0.5px solid var(--color-border-danger)", borderRadius: "var(--border-radius-md)", background: "none", cursor: "pointer", color: "var(--color-text-danger)" }}>Remove</button>
+                </div>
+              </div>
+              <RefillBadge med={m} />
+              {m.notes && <div style={{ fontSize: 12, color: "var(--color-text-tertiary)", marginTop: 6 }}>{m.notes}</div>}
+            </div>
+          ); })}
+          {patientMeds.length > 0 && <button onClick={() => { setForm(defaultMed()); setEditIdx(null); setTab("add"); }} style={{ marginTop: 4, width: "100%", padding: "9px", border: "0.5px dashed var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", background: "none", cursor: "pointer", fontSize: 13, color: "var(--color-text-secondary)" }}>+ Add medicine</button>}
+        </div>
+      )}
+
+      {/* ADD / EDIT */}
+      {tab === "add" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div><label style={{ fontSize: 13, color: "var(--color-text-secondary)", display: "block", marginBottom: 5 }}>Medicine name *</label><input value={form.name} onChange={e => setForm({...form,name:e.target.value})} placeholder="e.g. Metformin 500mg" style={{ width: "100%", boxSizing: "border-box" }} /></div>
+          <div><label style={{ fontSize: 13, color: "var(--color-text-secondary)", display: "block", marginBottom: 5 }}>Dosage</label><input value={form.dosage} onChange={e => setForm({...form,dosage:e.target.value})} placeholder="e.g. 1 tablet" style={{ width: "100%", boxSizing: "border-box" }} /></div>
+          <div style={{ background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-md)", padding: "12px 14px" }}>
+            <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>Refill tracking</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div><label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 5 }}>Start date</label><input type="date" value={form.startDate} onChange={e => setForm({...form,startDate:e.target.value})} style={{ width: "100%", boxSizing: "border-box" }} /></div>
+              <div><label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 5 }}>Total tablets</label><input type="number" value={form.totalTablets} onChange={e => setForm({...form,totalTablets:e.target.value})} placeholder="e.g. 30" style={{ width: "100%", boxSizing: "border-box" }} /></div>
+              <div><label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 5 }}>Tablets per day</label><input type="number" value={form.tabletsPerDay} onChange={e => setForm({...form,tabletsPerDay:e.target.value})} placeholder="e.g. 1" style={{ width: "100%", boxSizing: "border-box" }} /></div>
+              {form.startDate && form.totalTablets && form.tabletsPerDay && (() => { const s = calcStock(form); return s ? <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}><div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>Estimated refill</div><div style={{ fontSize: 13, fontWeight: 500, color: s.daysLeft <= 5 ? "var(--color-text-danger)" : "var(--color-text-primary)" }}>{s.refillDate ? s.refillDate.toLocaleDateString("en-IN",{day:"numeric",month:"short"}) : "\u2014"}<span style={{ fontWeight: 400, fontSize: 12, color: "var(--color-text-secondary)", marginLeft: 4 }}>({s.daysLeft}d)</span></div></div> : null; })()}
+            </div>
+          </div>
+          <div><label style={{ fontSize: 13, color: "var(--color-text-secondary)", display: "block", marginBottom: 5 }}>Notes</label><input value={form.notes} onChange={e => setForm({...form,notes:e.target.value})} placeholder="e.g. Take with food" style={{ width: "100%", boxSizing: "border-box" }} /></div>
+          <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+            <button onClick={saveMed} style={{ flex: 1, padding: "9px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-primary)", background: "var(--color-text-primary)", color: "var(--color-background-primary)", cursor: "pointer", fontSize: 14, fontWeight: 500 }}>{editIdx !== null ? "Save changes" : "Add medicine"}</button>
+            <button onClick={() => { setForm(defaultMed()); setEditIdx(null); setTab("medicines"); }} style={{ padding: "9px 16px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "none", cursor: "pointer", fontSize: 13, color: "var(--color-text-secondary)" }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* IMPORT MODAL */}
+      {importModal && (
+        <div style={modalBase} onClick={e => { if (e.target === e.currentTarget) { setImportModal(false); setImportPreview(null); } }}>
+          <div style={sheet}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+              <div style={{ fontSize: 16, fontWeight: 500 }}>Import medicines</div>
+              <button onClick={() => { setImportModal(false); setImportPreview(null); }} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 20, color: "var(--color-text-secondary)", lineHeight: 1 }}>{"\u00D7"}</button>
+            </div>
+
+            <div style={{ marginBottom: "1.25rem" }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: 8 }}>Step 1 — Get the AI prompt</div>
+              <div style={{ background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-md)", padding: "10px 12px", fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 10, lineHeight: 1.6 }}>
+                Take a photo of the prescription. Open Claude or ChatGPT, attach the image, then paste the prompt below.
+              </div>
+              <button onClick={() => setPromptModal(true)} style={{ width: "100%", padding: "9px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "none", cursor: "pointer", fontSize: 13, color: "var(--color-text-info)", fontWeight: 500 }}>
+                View &amp; copy AI prompt {"\u2192"}
+              </button>
+            </div>
+
+            <div style={{ borderTop: "0.5px solid var(--color-border-tertiary)", margin: "0 0 1.25rem" }} />
+
+            <div style={{ marginBottom: "1.25rem" }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: 8 }}>Step 2 — Save &amp; upload the JSON</div>
+              <div style={{ background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-md)", padding: "10px 12px", fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 10, lineHeight: 1.6 }}>
+                Copy the JSON output, save as <span style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>medicines.json</span>, then upload below.
+              </div>
+              <input ref={fileRef} type="file" accept=".json,application/json" onChange={handleFile} style={{ display: "none" }} />
+              <button onClick={() => fileRef.current.click()} style={{ width: "100%", padding: "9px", borderRadius: "var(--border-radius-md)", border: "0.5px dashed var(--color-border-secondary)", background: "none", cursor: "pointer", fontSize: 13, color: "var(--color-text-primary)" }}>
+                Choose JSON file
+              </button>
+              {importError && <div style={{ marginTop: 8, fontSize: 12, color: "var(--color-text-danger)" }}>{importError}</div>}
+            </div>
+
+            {importPreview && (
+              <div>
+                <div style={{ borderTop: "0.5px solid var(--color-border-tertiary)", margin: "0 0 1rem" }} />
+                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>
+                  Found {importPreview.length} medicine{importPreview.length > 1 ? "s" : ""} — importing for {patient}
+                </div>
+                <div style={{ maxHeight: 140, overflowY: "auto", marginBottom: 12 }}>
+                  {importPreview.map((m, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 10px", borderRadius: "var(--border-radius-md)", background: "var(--color-background-secondary)", marginBottom: 6, fontSize: 13 }}>
+                      <span style={{ fontWeight: 500 }}>{m.name}</span>
+                      <span style={{ color: "var(--color-text-secondary)", fontSize: 12 }}>{m.tabletsPerDay}/day &middot; {m.totalTablets} tablets</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <button onClick={() => confirmImport("replace")} style={{ padding: "9px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-danger)", background: "none", cursor: "pointer", fontSize: 13, color: "var(--color-text-danger)" }}>Replace existing</button>
+                  <button onClick={() => confirmImport("append")} style={{ padding: "9px", borderRadius: "var(--border-radius-md)", border: "none", background: "var(--color-text-primary)", color: "var(--color-background-primary)", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Add to existing</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PROMPT MODAL */}
+      {promptModal && (
+        <div style={modalBase} onClick={e => { if (e.target === e.currentTarget) setPromptModal(false); }}>
+          <div style={sheet}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <div style={{ fontSize: 16, fontWeight: 500 }}>AI prompt</div>
+              <button onClick={() => setPromptModal(false)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 20, color: "var(--color-text-secondary)", lineHeight: 1 }}>{"\u00D7"}</button>
+            </div>
+            <div style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 12, lineHeight: 1.6 }}>
+              Copy this prompt. Attach your prescription photo in Claude/ChatGPT and paste this. Save the JSON output as a <span style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>.json</span> file and upload it.
+            </div>
+            <div style={{ background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-md)", padding: "12px", fontSize: 12, fontFamily: "var(--font-mono)", whiteSpace: "pre-wrap", lineHeight: 1.7, color: "var(--color-text-primary)", maxHeight: 280, overflowY: "auto", marginBottom: 14 }}>{AI_PROMPT}</div>
+            <button onClick={copyPrompt} style={{ width: "100%", padding: "10px", borderRadius: "var(--border-radius-md)", border: "none", background: "var(--color-text-primary)", color: "var(--color-background-primary)", cursor: "pointer", fontSize: 14, fontWeight: 500 }}>
+              {copied ? "Copied!" : "Copy prompt"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

@@ -1,13 +1,5 @@
 import { Artifact } from "../data/artifacts";
 
-const TOOL_COLORS: Record<string, string> = {
-  Claude: "#d97706",
-  ChatGPT: "#10a37f",
-  Gemini: "#4285f4",
-  Copilot: "#6e40c9",
-  Other: "#64748b",
-};
-
 const CATEGORY_ICONS: Record<string, string> = {
   Game: "\u{1F3AE}",
   Visualization: "\u{1F4CA}",
@@ -38,12 +30,6 @@ export default function ArtifactCard({ artifact, onClick }: ArtifactCardProps) {
       <div className="card-header">
         <span className="category-icon">
           {CATEGORY_ICONS[artifact.category] || "\u{1F4E6}"}
-        </span>
-        <span
-          className="tool-badge"
-          style={{ backgroundColor: TOOL_COLORS[artifact.tool] || "#64748b" }}
-        >
-          {artifact.tool}
         </span>
       </div>
       <h3 className="card-title">{artifact.title}</h3>

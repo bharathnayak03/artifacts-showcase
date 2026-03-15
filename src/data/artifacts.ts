@@ -49,6 +49,17 @@ export const artifacts: Artifact[] = [
     createdAt: "2026-03-14",
     embedUrl: "/artifacts/swiggy_order_dashboard.html",
   },
+  {
+    id: "medicine-tracker",
+    title: "Medicine Refill Tracker",
+    description:
+      "Track medicine stock and refill dates for your family. Shows remaining tablets, days left, and alerts when refills are due. Supports AI-powered prescription import.",
+    category: "Productivity",
+    tool: "Claude",
+    tags: ["health", "refill", "react", "productivity"],
+    createdAt: "2026-03-15",
+    embedUrl: "/artifacts/medicine_tracker.html",
+  },
 //   {
 //     id: "data-viz-example",
 //     title: "Interactive Data Visualization",
